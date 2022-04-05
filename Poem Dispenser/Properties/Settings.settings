@@ -1,7 +1,69 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
-  <Profiles>
-    <Profile Name="(Default)" />
-  </Profiles>
-  <Settings />
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Poem_Dispenser.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="poemdirectory" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">p:\</Value>
+    </Setting>
+    <Setting Name="poemfileextension" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">*.txt</Value>
+    </Setting>
+    <Setting Name="logdirectory" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">p:</Value>
+    </Setting>
+    <Setting Name="logfile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">poemlog.log</Value>
+    </Setting>
+    <Setting Name="logofile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">ppl-logo.jpg</Value>
+    </Setting>
+    <Setting Name="printlogo" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">true</Value>
+    </Setting>
+    <Setting Name="printer" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">default</Value>
+    </Setting>
+    <Setting Name="linewidth" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">300</Value>
+    </Setting>
+    <Setting Name="paperwidth" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">300</Value>
+    </Setting>
+    <Setting Name="paperheight" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">1000</Value>
+    </Setting>
+    <Setting Name="leftmargin" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="rightmargin" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="topmargin" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="bottommargin" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="font" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">times</Value>
+    </Setting>
+    <Setting Name="domain" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">PPL</Value>
+    </Setting>
+    <Setting Name="username" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">pdispenser</Value>
+    </Setting>
+    <Setting Name="password" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">hLJqMX+idT</Value>
+    </Setting>
+    <Setting Name="logonrequired" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">true</Value>
+    </Setting>
+    <Setting Name="exitmessage" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Thanks for visiting PPL!</Value>
+    </Setting>
+    <Setting Name="firstrun" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

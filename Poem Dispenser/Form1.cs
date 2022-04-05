@@ -19,21 +19,204 @@ namespace Poem_Dispenser
         public Form1()
         {
             InitializeComponent();
-            ConnectToPoemsShare();
+            LoadSettings();
+            GUIInit();
             GetFileNames();
             RefreshPoems.RunWorkerAsync();
         }
 
         List<string> PoemFiles;
-        const string PoemPath = @"p:\";
-        const string FileExtension = "*.txt";
         Random rnd = new Random();
-        TextFile PoemLog = new TextFile(@"c:\all", "poemlog.log");
 
         private Font printFont;
-        private StreamReader streamToPrint;
+        private Font titleFont;
+        private Font bylineFont;
 
+        //Configurable options
+        /*
+         * A config file called "poemzconfig.ppl" must be located in the same
+         * directory as the PoemDispenser.exe executable. All measurements are
+         * in pixels. Contents should follow this format:
+         * 
+            <poemdirectory>c:\poemfolder\
+            <poemfileextension>*.txt
+            <logdirectory>c:\poemfolder\
+            <logfile>poemlog.log
+            <linewidth>300
+            <paperwidth>300
+            <paperheight>5000
+            <leftmargin>10
+            <rightmargin>10
+            <topmargin>10
+            <bottommargin>10
+            <font>Times
+            <exitmessage>Message printed at the bottom
+            <logofile>logofile.jpg
+            <printlogo>true
+            <printer>default
+        */
+        string PoemPath = string.Empty;
+        string FileExtension = string.Empty;
+        string LogDirectory = string.Empty;
+        string LogFile = string.Empty;
+        string LogoFile = string.Empty;
+        string SelectedPrinter = "default";
+        int LineWidth = 280;
+        int PaperWidth = 300;
+        int PaperLength = 2500;
+        int TopMargin = 10;
+        int BottomMargin = 10;
+        int RightMargin = 10;
+        int LeftMargin = 10;
+        string DefaultFontName = "Arial";
+        string ExitMessage = string.Empty;
+        bool PrintLogo = false;
+        //End configurable options
+
+        TextFile PoemLog = new TextFile();
+        TextFile CurrentPoem = new TextFile();
+
+        private List<string>InstalledPrinters ()
+            //Creates a list of all installed printer names on the system
+            //Adds "(default)" to the printer that is set as the default in Windows
+        {
+            List<string> result = new List<string>();
+            PrinterSettings psettings = new PrinterSettings();
+            string pdefault = psettings.PrinterName;
+            foreach (string printer in PrinterSettings.InstalledPrinters)
+            {
+                string def = string.Empty;
+                if (printer == pdefault)
+                    def = " (Default)";
+                result.Add(printer + def);
+            }
+            return result;
+        }
+        private void GUIInit ()
+            //Fills in the cb_Printers combobox and sets
+            //the selected option to either the default printer
+            //or the printer listed in the config file
+        {
+            List<string> printerlist = InstalledPrinters();
+            string currentprinter = SelectedPrinter;
+            foreach (string printer in printerlist)
+            {
+                if (currentprinter == "default" && printer.Contains(" (Default)"))
+                    currentprinter = printer;
+                cb_Printers.Items.Add(printer);
+            }
+            cb_Printers.SelectedItem = currentprinter;
+        }
+        private void SetNewPrinter()
+            //Called when a new printer is selected in the cb_Printers combobox
+        {
+            string newprinter = cb_Printers.SelectedItem.ToString();
+            //Set the SelectedPrinter setting to either the name of the selected printer or "default"
+            if (!newprinter.Contains(" (Default)"))
+                SelectedPrinter = newprinter;
+            else
+                SelectedPrinter = "default";
+            //Find the path to the running .exe
+            string appPath = AppContext.BaseDirectory;
+            //Open the config file, change the printer option, and save
+            if (File.Exists(appPath + "Poemzconfig.ppl"))
+            {
+                TextFile configfile = new TextFile(appPath, "Poemzconfig.ppl", true);
+                int printersetting = -1;
+                for (int i = 0; i < configfile.Data().Count; i++)
+                {
+                    if (configfile.Data()[i].Contains("<printer>"))
+                    {
+                        printersetting = i;
+                        break;
+                    }
+                }
+                if (printersetting >= 0)
+                    configfile.UpdateLine(printersetting, "<printer>" + SelectedPrinter);
+                else
+                    configfile.Add("<printer>" + SelectedPrinter);
+            }
+        }
+        
+        private void LoadSettings ()
+            //Load settings from the configuration file
+        {
+            //Get the path to the .exe
+            string appPath = AppContext.BaseDirectory;
+            if (File.Exists(appPath + "Poemzconfig.ppl"))
+            {
+                //Open the config file
+                TextFile configfile = new TextFile(appPath, "Poemzconfig.ppl", false);
+                foreach (string config in configfile.Data())
+                {
+                    //Split each line to get a configuration field and its value
+                    string[] datainfo = config.Split('>');
+                    string field = datainfo[0];
+                    string value = string.Empty;
+                    if (datainfo.Length > 1)
+                        value = datainfo[1];
+                    if (!string.IsNullOrEmpty(value) && !string.IsNullOrWhiteSpace(value))
+                        //If the setting has a value, assign the value to the appropriate variable
+                    {
+                        switch (field)
+                        {
+                            case "<poemdirectory":
+                                PoemPath = value;
+                                break;
+                            case "<poemfileextension":
+                                FileExtension = value;
+                                break;
+                            case "<logdirectory":
+                                LogDirectory = value;
+                                break;
+                            case "<logfile":
+                                LogFile = value;
+                                break;
+                            case "<linewidth":
+                                LineWidth = int.Parse(value);
+                                break;
+                            case "<paperwidth":
+                                PaperWidth = int.Parse(value);
+                                break;
+                            case "<paperheight":
+                                PaperLength = int.Parse(value);
+                                break;
+                            case "<leftmargin":
+                                LeftMargin = int.Parse(value);
+                                break;
+                            case "<rightmargin":
+                                RightMargin = int.Parse(value);
+                                break;
+                            case "<topmargin":
+                                TopMargin = int.Parse(value);
+                                break;
+                            case "<bottommargin":
+                                BottomMargin = int.Parse(value);
+                                break;
+                            case "<font":
+                                DefaultFontName = value;
+                                break;
+                            case "<exitmessage":
+                                ExitMessage = value;
+                                break;
+                            case "<logofile":
+                                LogoFile = value;
+                                break;
+                            case "<printlogo":
+                                PrintLogo = (value.ToLower() == "true");
+                                break;
+                            case "<printer":
+                                SelectedPrinter = value;
+                                break;
+                        }
+                    }
+                }
+                //Open or create the configured log file
+                PoemLog = new TextFile(LogDirectory, LogFile);
+            }
+        }
         private void GetFileNames ()
+            //Make a list of all of the files in the poem directory that have the configured extension (.txt by default)
         {
             string[] files = Directory.GetFiles(PoemPath,FileExtension);
             PoemFiles = new List<string>();
@@ -41,13 +224,12 @@ namespace Poem_Dispenser
             {
                 string justfilename = Path.GetFileName(file);
                 PoemFiles.Add(justfilename);
-                Console.WriteLine(justfilename);
             }
         }
         private string PickAFile ()
+            //Returns the filename of a poem picked at random from the list of files
         {
             string result = string.Empty;
-
             if (PoemFiles.Count > 0)
             {
                 int poemindex = rnd.Next(0, PoemFiles.Count - 1);
@@ -55,98 +237,142 @@ namespace Poem_Dispenser
             }
             return result;
         }       
-        private void ConnectToPoemsShare ()
-        {
-            if (!Directory.Exists("p:"))
-            {
-                Process proc = new Process();
-                ProcessStartInfo ps = new ProcessStartInfo();
-                ps.UseShellExecute = false;
-                ps.CreateNoWindow = true;
-                ps.RedirectStandardOutput = true;
-                ps.FileName = "cmd.exe";
-                ps.Arguments = @"/c net use p: \\10.92.90.45\poems$ /user:ppl\pdispenser hLJqMX+idT";
-                proc.StartInfo = ps;
-                proc.Start();
-                proc.WaitForExit();
-            }
-        }
-        private void PrintPoemFile(string filename)
+        private void PrintPoemFile()
+            //Prepares the poem for printing
         {            
-            try
-            {
-                streamToPrint = new StreamReader (filename);
-                try
+             try
                 {
-                    printFont = new Font("Arial", 10);
+                    //Set the fonts for the title, author and body of the poem
+                    printFont = new Font(DefaultFontName, 10);
+                    titleFont = new Font(DefaultFontName, 12, FontStyle.Bold);
+                    bylineFont = new Font(DefaultFontName, 10, FontStyle.Italic);
                     PrintDocument pd = new PrintDocument();
+                    if (SelectedPrinter != "default")
+                        pd.PrinterSettings.PrinterName = SelectedPrinter;
+                    //Create an event handler to build the contents of the printout
                     pd.PrintPage += new PrintPageEventHandler (this.pd_PrintPage);
-                    pd.DefaultPageSettings.PaperSize = new PaperSize("PoemSize", 300, 1000);
-                    pd.DefaultPageSettings.Margins = new Margins(10, 10, 10, 10);
+                    //Create a new papersize to handle the poem, and set the margins
+                    pd.DefaultPageSettings.PaperSize = new PaperSize("PoemSize", PaperWidth, PaperLength);
+                    pd.DefaultPageSettings.Margins = new Margins(LeftMargin, RightMargin, TopMargin, BottomMargin);
+                    //Send to the printer
                     pd.Print();
                 }
-                finally
+                catch (Exception e)
                 {
-                    streamToPrint.Close();
+                    Console.WriteLine("Error printing:" + e.Message);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
         }
         private void pd_PrintPage(object sender, PrintPageEventArgs ev)
+            //Creates the content of the printout
         {
-            float linesPerPage = 0;
-            float yPos = 0;
-            int count = 0;
-            float leftMargin = ev.MarginBounds.Left;
             float topMargin = ev.MarginBounds.Top;
-            string line = null;
-            bool LineIsNull = false;
+            //Set number of blank lines after the poem body
+            int TrailingLinefeeds = 3;
+            Font currentFont = printFont;
+            //Tracks how many vertical pixels of space are left on the page
+            float remainingPageSpace = ev.MarginBounds.Height;
+            int logoMaxWidth = 75;
+            int logoMaxHeight = 75;
+            int logoHeight = 0;
+            int logoWidth = 0;
 
-            float yIncrement = topMargin;
-
-            linesPerPage = ev.MarginBounds.Height /
-               printFont.GetHeight(ev.Graphics);
-
-            SizeF sf;
-            while (count < linesPerPage)// && ((line = streamToPrint.ReadLine()) != null))
+            Image img = null;
+            string logofile = PoemPath + @"\" + LogoFile;
+            //Load the logo file and scale it proportionally to fit on the page
+            if (File.Exists(logofile))
             {
-                line = streamToPrint.ReadLine();
-                //If line is blank, add a space to keep formatting intact
-                if (string.IsNullOrEmpty(line))
+                img = Image.FromFile(logofile);
+                logoWidth = img.Width;
+                logoHeight = img.Height;
+                if (logoWidth > logoMaxWidth)
                 {
-                    LineIsNull = (line==null);
-                    line = " ";
+                    logoWidth = logoMaxWidth;
+                    int scaleFactor = (int)(logoWidth / logoMaxWidth);
+                    logoHeight = (int)(logoHeight / scaleFactor);
                 }
-                Graphics gf = ev.Graphics;
-                sf = gf.MeasureString(line, printFont, 300);
-                yPos = topMargin + (count * printFont.GetHeight(ev.Graphics));
-                ev.Graphics.DrawString(line, printFont, Brushes.Black, new RectangleF(new PointF(4.0F,yIncrement),sf),StringFormat.GenericTypographic);
-                yIncrement += sf.Height;
-                count++;
+                if (logoHeight > logoMaxHeight)
+                {
+                    logoHeight = logoMaxHeight;
+                    int scaleFactor = (int)(logoHeight / logoMaxHeight);
+                    logoWidth = (int)(logoWidth / scaleFactor);
+                }
             }
 
-            if (!LineIsNull)
-                ev.HasMorePages = true;
-            else
-                ev.HasMorePages = false;
+            //yIncrement tracks how many vertical pixels we've used on the page
+            float yIncrement = topMargin;
+            SizeF sf;
+
+            //Load the poem and append any text to go after the body
+            List<string> PoemText = CurrentPoem.Data();
+            for (int i = 0; i < TrailingLinefeeds; i++)
+                PoemText.Add(" ");
+            PoemText.Add("-------------");
+            PoemText.Add(ExitMessage);
+            ev.HasMorePages = false;
+            //Add each line of the poem to the page
+            foreach (string nextline in PoemText)
+            {
+                string line = nextline;
+                currentFont = printFont;
+                if (string.IsNullOrEmpty(line))
+                    //Ensures that blank lines are retained
+                {
+                    line = " ";
+                }
+                if (line.Contains ("<title>"))
+                    //Sets title font for the title line
+                {
+                    currentFont = titleFont;
+                    line = line.Replace("<title>", string.Empty);
+                }
+                if (line.Contains("<author>"))
+                    //sets author font for the author line
+                {
+                    currentFont = bylineFont;
+                    line = line.Replace("<author>", string.Empty);
+                }
+
+                Graphics gf = ev.Graphics;
+                //Measure the textbox for the current line and add it to the page if there is enough space remaining
+                sf = gf.MeasureString(line, currentFont, LineWidth);
+                remainingPageSpace = remainingPageSpace - sf.Height;
+                if (remainingPageSpace >= 0)
+                {
+                    ev.Graphics.DrawString(line, currentFont, Brushes.Black, new RectangleF(new PointF(4.0F, yIncrement), sf), StringFormat.GenericTypographic);
+                    yIncrement += sf.Height;
+                }
+            }
+            if (PrintLogo && img != null)
+            {
+                remainingPageSpace = remainingPageSpace - img.Height;
+                if (File.Exists(logofile) && remainingPageSpace >= 0)
+                    //Add in the logo if there is enough remaining space on the page
+                {
+                    int imageXPos = (int)((ev.PageBounds.Width/2)-logoWidth);
+                    ev.Graphics.DrawImage(img, imageXPos,(int)yIncrement,logoWidth,logoHeight);
+                }
+            }
         }
         private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+            //Handles key press event
         {
             if (e.KeyChar == ' ')
+                //Screens for a spacebar press
             {
-                string PoemFile = PoemPath + PickAFile();
-                if (File.Exists(PoemFile))
+                //pick a poem title at random from the list loaded previously
+                string PoemFile = PickAFile();
+                if (File.Exists(PoemPath + PoemFile))
                 {
-                    Console.WriteLine("  Poem Selected: " + PoemFile);
+                    //Log the poem and timestamp it for later analysis
                     PoemLog.Add(DateTime.Now.ToString("g") + "  -  " + PoemFile);
-                    PrintPoemFile(PoemFile);
+                    //Load and print the file with the matching filename
+                    CurrentPoem = new TextFile(PoemPath,PoemFile,false);
+                    PrintPoemFile();
                 }
             }
         }
         private void RefreshPoems_DoWork(object sender, DoWorkEventArgs e)
+            //Background worker scans the poem repository for new files every 60 seconds
         {
             //How often to refresh the poems list, in minutes
             int RefreshInterval = 1;
@@ -155,8 +381,13 @@ namespace Poem_Dispenser
             while (KeepChecking)
             {
                 Thread.Sleep(RefreshIntervalInMS);
+                //Reload the list of filenames
                 GetFileNames();
             }
+        }
+        private void cb_Printers_SelectionChangeCommitted(object sender, EventArgs e)
+        {
+            SetNewPrinter();
         }
     }
 
@@ -280,19 +511,13 @@ namespace Poem_Dispenser
         }
         public void Save()
         {
-            //Console.WriteLine("Attempting to save file...");
-            //Console.WriteLine("   FileInfoSet = " + FileInfoSet.ToString());
-            //Console.WriteLine("   UnsavedUpdates = " + UnsavedUpdates.ToString());
             if (FileInfoSet && UnsavedUpdates)
             {
-                //FileStream file = File.Open(Path + FileName, FileMode.Create);
-                //StreamWriter filedata = new StreamWriter(file);
                 if (File.Exists(Path + FileName))
                     File.Delete(Path + FileName);
                 StreamWriter file = new StreamWriter(Path + FileName);
                 foreach (string line in FileData)
                 {
-                    //Console.WriteLine("    Saving: " + line);
                     file.WriteLine(line);
                 }
                 file.Close();
